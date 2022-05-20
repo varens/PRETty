@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 import os
 import argparse
+from subprocess import run, PIPE, STDOUT
 from time import sleep
 
 alt_text = ' automation tool'
@@ -23,12 +24,16 @@ def interactive_steps():
 parser = argparse.ArgumentParser()
 parser.add_argument('--cli', dest='cli', action='store_true',
                     help='Enable CLI mode (No user input)')
-parser.add_argument('-r', '--ip_range', type=str, default='--localnet',
+parser.add_argument('-r', '--ip-range', type=str, default='--localnet',
                     help='IP range to scan')
-parser.add_argument('-c', '--commands_list', type=str, default='pret_pagecount.txt',
+parser.add_argument('-c', '--commands-list', type=str, default='pret_pagecount.txt',
                     help='Name of command list file to use')
-parser.add_argument('-s', '--shell_type', type=str, default='ps',
+parser.add_argument('-s', '--shell-type', type=str, default='ps',
                     help='Printer shell type for PRET')
+parser.add_argument('-a', '--arp-scan', action='store_true',
+                    help='Perform an arp scan')
+parser.add_argument('-l', '--printer-list', default='./IP/Printer_list',
+                    help='A file with a list of printers to probe')
 
 args = parser.parse_args()
 
@@ -109,23 +114,30 @@ def PRETty_Interactive():
     i+=1
 
 def PRETty_cli():
-  os.system('sudo arp-scan -g '+args.ip_range+' -W ./IP/scan.pcap')
-  PrinterLogSort()
-  sleep(1)
-  list = './IP/Printer_list'
-  with open(list) as inf:
-    lines = [line.strip() for line in inf]
-  i=0
-  while i < len(lines):
-    os.system('../pret.py -i ./commands/'+args.commands_list+' -q '+lines[i]+' '+ args.shell_type)
-    i+=1
+  # avoid breaking current functionality
+  if args.arp_scan:
+    os.system('sudo arp-scan -g '+args.ip_range+' -W ./IP/scan.pcap')
+    PrinterLogSort()
+    sleep(1)
+    list = './IP/Printer_list'
+    with open(list) as inf:
+      lines = [line.strip() for line in inf]
+    i=0
+    while i < len(lines):
+      os.system('../pret.py -i ./commands/'+args.commands_list+' -q '+lines[i]+' '+ args.shell_type)
+      i+=1
+  else:
+    with open(args.printer_list) as inf:
+      for printer_ip in inf:
+        ProbePrinter(printer_ip.rstrip(), f'./commands/{args.commands_list}')
+
+def ProbePrinter(ip, commands_file, shell_type='pjl'):
+  print('open assigned to %r' % open)
+  cmd = f'../pret.py -i {commands_file} -q {ip} {shell_type}'
+  with run(cmd, stdout=PIPE, stderr=STDOUT, shell=True) as pret_proc:
+    print(pret_proc.stdout.read())
 
 if args.cli:
-  main_color = 'red'
-  sub_color = 'green'
-  line_color = 'white'
-  text_color = 'yellow'
-  alt_text =' AUTOPWN      '
   main_art()
   sleep_time=0.5
   PRETty_cli()
