@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 import os
 import argparse
+import re
 from subprocess import run, PIPE, STDOUT
 from time import sleep
+from datetime import date
 
 alt_text = ' automation tool'
 
@@ -21,6 +23,9 @@ def interactive_steps():
   print("Step 5: Observe all laws and ethical/moral codes :D")
   print("Step 6: >:)\n")
 
+def toRE(arg_value):
+  return re.compile(arg_value, re.I)
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--cli', dest='cli', action='store_true',
                     help='Enable CLI mode (No user input)')
@@ -28,12 +33,16 @@ parser.add_argument('-r', '--ip-range', type=str, default='--localnet',
                     help='IP range to scan')
 parser.add_argument('-c', '--commands-list', type=str, default='pret_pagecount.txt',
                     help='Name of command list file to use')
-parser.add_argument('-s', '--shell-type', type=str, default='ps',
+parser.add_argument('-s', '--shell-type', type=str, default='pjl',
                     help='Printer shell type for PRET')
 parser.add_argument('-a', '--arp-scan', action='store_true',
                     help='Perform an arp scan')
 parser.add_argument('-l', '--printer-list', default='./IP/Printer_list',
                     help='A file with a list of printers to probe')
+parser.add_argument('-o', '--output-file', default=f'./IP/{date.today().strftime("%m%d%y")}.list',
+                    help='File path to save IPs which pass the probe')
+parser.add_argument('-m', '--match-condition', type=toRE, default=r'pagecount=\d+',
+                    help='A regex indicating an expected probe output')
 
 args = parser.parse_args()
 
@@ -127,15 +136,22 @@ def PRETty_cli():
       os.system('../pret.py -i ./commands/'+args.commands_list+' -q '+lines[i]+' '+ args.shell_type)
       i+=1
   else:
-    with open(args.printer_list) as inf:
+    with open(args.printer_list) as inf, open(args.output_file, 'w') as outf:
       for printer_ip in inf:
-        ProbePrinter(printer_ip.rstrip(), f'./commands/{args.commands_list}')
+        probe_output = ProbePrinter(printer_ip.rstrip(), f'./commands/{args.commands_list}', args.shell_type)
+        print(probe_output)
+        if ProbePassed(probe_output, args.match_condition):
+          outf.write(printer_ip)
 
-def ProbePrinter(ip, commands_file, shell_type='pjl'):
-  print('open assigned to %r' % open)
-  cmd = f'../pret.py -i {commands_file} -q {ip} {shell_type}'
-  with run(cmd, stdout=PIPE, stderr=STDOUT, shell=True) as pret_proc:
-    print(pret_proc.stdout.read())
+def ProbePrinter(ip, commands_file, shell_type):
+  cmd = ['pret.py', '-i', commands_file, '-q', ip, shell_type]
+  pret_done = run(cmd, stdout=PIPE, stderr=STDOUT)
+  return pret_done.stdout.decode()
+
+def ProbePassed(output, re_condition):
+  if 'established' not in output:
+    return False
+  return bool(re_condition.search(output))
 
 if args.cli:
   main_art()

@@ -4,3 +4,5 @@ scan.pcap
 pcap.txt
 scan.txt
 dev/
+.venv/
+*.list
