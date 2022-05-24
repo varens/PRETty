@@ -35,7 +35,7 @@ Additionally, PRETty can be used to automate command/payload delivery to any giv
 * For more advanced users, run `./PRETty.py -h`
 	* `./PRETty.py --cli` enables CLI mode. (No user input required)
 	* The default `./PRETty.py --cli` will run `./commands/pret_pagecount.txt` on every printer in `./IP/Printer_list` or a file supplied by `-l`. Output from the given command will be matched against a case-insensitive regex specified by `-m` and appended to a file specified by `-o`. Most arguments assume opinionated defaults, for example a simple `--cli` run equals the following:
-  `PRETty.py --cli -c pret_pagecount.txt -m 'pagecount=\d+' -l ./IP/Printer_list -o ./IP/MMDDYY.list
+  `PRETty.py --cli -c pret_pagecount.txt -m 'pagecount=\d+' -l ./IP/Printer_list -o ./IP/MMDDYY.list`
 
 ## Disclaimers
 ### The standard internet fun disclaimer applies. Don't commit crimes, be responsible. 
