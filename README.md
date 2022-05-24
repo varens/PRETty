@@ -2,7 +2,8 @@
 "PRinter Exploitation Toolkit" LAN automation tool
  (It's just a python wrapper for PRET... actually it's really just a for loop)
 
-![alt text](https://github.com/BusesCanFly/PRETty/blob/master/screenshot.png "Who doesn't love ASCII art?")
+This is a minor rewrite of the original tool with a focus on non-interactive execution.
+No third-party modules, besides pysnmp and colorama required by PRET, are imported by the tool.
 
 PRETty is useful when a large number of printers are present on a network. Instead of scanning, logging, and manually running PRET againt each individual printer, PRETty will automatically discover and run choosen PRET payloads against all printers on the target network.
 
@@ -11,7 +12,17 @@ Additionally, PRETty can be used to automate command/payload delivery to any giv
 # GUIDE:
 
 ## Installation
-One line w/ [PRET](https://github.com/RUB-NDS/PRET) installation: `sudo apt -y install imagemagick ghostscript arp-scan tshark && sudo pip install -U argparse termcolor colorama pysnmp && git clone https://github.com/RUB-NDS/PRET && cd PRET && git clone https://github.com/BusesCanFly/PRETty && cd PRETty && chmod +x PRETty.py`
+
+1. install the prerequisites
+  - `sudo apt -y install imagemagick ghostscript arp-scan tshark`
+  - pysnmp and colorama are required by PRET which may installed with pip or your OS package manager
+2. set up [PRET](https://github.com/RUB-NDS/PRET) by making pret.py executable and available in your PATH, for example:
+  - `git clone https://github.com/RUB-NDS/PRET`
+  - `chmod +x PRET/pret.py`
+  - `PATH=$PATH:$(pwd)/PRET`
+3. set up PRETty:
+  - `git clone https://github.com/varens/PRETty`
+  - `chmod +x PRETty/PRETty.py`
 
 ## Lists
 * PRETty automatically scans the LAN for HP/Brother/Kyocera printers and creates an IP list for itself
@@ -23,8 +34,8 @@ One line w/ [PRET](https://github.com/RUB-NDS/PRET) installation: `sudo apt -y i
 * Run PRETty with `./PRETty.py` and follow the prompts :D
 * For more advanced users, run `./PRETty.py -h`
 	* `./PRETty.py --cli` enables CLI mode. (No user input required)
-	* The default `./PRETty.py --cli` will scan the current LAN, and run `./commands/pret_pagecount.txt` on every printer found
-	* (optional) Additional arguments are: `-r [IP range to scan] -c [Name of command list file to use] -s [PRET shell type]`
+	* The default `./PRETty.py --cli` will run `./commands/pret_pagecount.txt` on every printer in `./IP/Printer_list` or a file supplied by `-l`. Output from the given command will be matched against a case-insensitive regex specified by `-m` and appended to a file specified by `-o`. Most arguments assume opinionated defaults, for example a simple `--cli` run equals the following:
+  `PRETty.py --cli -c pret_pagecount.txt -m 'pagecount=\d+' -l ./IP/Printer_list -o ./IP/MMDDYY.list
 
 ## Disclaimers
 ### The standard internet fun disclaimer applies. Don't commit crimes, be responsible. 
