@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 import os
 import argparse
 import re
@@ -7,26 +8,13 @@ from subprocess import run, PIPE, STDOUT
 from time import sleep
 from datetime import date
 
-alt_text = ' automation tool'
-
-def main_text():
-  print("              \"PRinter Exploitation Toolkit\" LAN"+alt_text+"             ")
-def main_art():
-  print("PRETTY")
-  main_text()
-  print("-------------------------------------------------------------------------------")
-def interactive_steps():
-  print("Step 1: Generate IP list")
-  print("Step 2: Select IP list")
-  print("Step 3: Select PRET command input file")
-  print("Step 4: Select shell type")
-  print("Step 5: Observe all laws and ethical/moral codes :D")
-  print("Step 6: >:)\n")
+def main():
+  ap = argparse.ArgumentParser()
+  ap.add_argument()
 
 def toRE(arg_value):
   return re.compile(arg_value, re.I)
 
-parser = argparse.ArgumentParser()
 parser.add_argument('--cli', dest='cli', action='store_true',
                     help='Enable CLI mode (No user input)')
 parser.add_argument('-r', '--ip-range', type=str, default='--localnet',
@@ -164,3 +152,5 @@ else:
   sleep_time=1.5
   PRETty_Interactive()
 
+if __name__ == '__main__':
+  main()
