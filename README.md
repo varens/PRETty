@@ -1,9 +1,13 @@
 # PRETty
+"PRinter Exploitation Toolkit" LAN automation tool
+ (It's just a python wrapper for PRET... actually it's really just a for loop)
 
-## Use cases:
-- Run PRET commands against a list of printer IPs
-- Produce a list of printers that can be manipulated with PRET
-- Define regex conditions for each command indicating success
+This is a minor rewrite of the original tool with a focus on non-interactive execution.
+No third-party modules, besides pysnmp and colorama required by PRET, are imported by the tool.
+
+PRETty is useful when a large number of printers are present on a network. Instead of scanning, logging, and manually running PRET againt each individual printer, PRETty will automatically discover and run choosen PRET payloads against all printers on the target network.
+
+Additionally, PRETty can be used to automate command/payload delivery to any given list of printers (See the "Lists" section)
 
 # GUIDE:
 
@@ -27,8 +31,6 @@
 	* However, you can place additional command list files in `PRETty/commands/`
 	
 ## Usage
-`./PRETty.py --printer-list <file> --list-output <file> --commands <list> --conf <file>`
-
 * Run PRETty with `./PRETty.py` and follow the prompts :D
 * For more advanced users, run `./PRETty.py -h`
 	* `./PRETty.py --cli` enables CLI mode. (No user input required)
