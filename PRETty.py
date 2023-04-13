@@ -1,63 +1,11 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-import os
-import argparse
-import re
+
+import os, sys, argparse, re
 from subprocess import run, PIPE, STDOUT
-from time import sleep
-from datetime import date
-
-alt_text = ' automation tool'
-
-def main_text():
-  print("              \"PRinter Exploitation Toolkit\" LAN"+alt_text+"             ")
-def main_art():
-  print("PRETTY")
-  main_text()
-  print("-------------------------------------------------------------------------------")
-def interactive_steps():
-  print("Step 1: Generate IP list")
-  print("Step 2: Select IP list")
-  print("Step 3: Select PRET command input file")
-  print("Step 4: Select shell type")
-  print("Step 5: Observe all laws and ethical/moral codes :D")
-  print("Step 6: >:)\n")
 
 def toRE(arg_value):
   return re.compile(arg_value, re.I)
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--cli', dest='cli', action='store_true',
-                    help='Enable CLI mode (No user input)')
-parser.add_argument('-r', '--ip-range', type=str, default='--localnet',
-                    help='IP range to scan')
-parser.add_argument('-c', '--commands-list', type=str, default='pret_pagecount.txt',
-                    help='Name of command list file to use')
-parser.add_argument('-s', '--shell-type', type=str, default='pjl',
-                    help='Printer shell type for PRET')
-parser.add_argument('-a', '--arp-scan', action='store_true',
-                    help='Perform an arp scan')
-parser.add_argument('-l', '--printer-list', default='./IP/Printer_list',
-                    help='A file with a list of printers to probe')
-parser.add_argument('-o', '--output-file', default=f'./IP/{date.today().strftime("%m%d%y")}.list',
-                    help='File path to save IPs which pass the probe')
-parser.add_argument('-m', '--match-condition', type=toRE, default=r'pagecount=\d+',
-                    help='A regex indicating an expected probe output')
-
-args = parser.parse_args()
-
-sleep_time=1.5
-def PrinterLogSort():
-  os.system('tshark -r ./IP/scan.pcap > ./IP/pcap.txt 2>/dev/null')
-  os.system('cat ./IP/pcap.txt | grep -iE "Hewlett|Brother|Kyocera|Laserjet" > ./IP/raw_list 2>/dev/null')
-  os.system('awk \'{print $8}\' ./IP/raw_list > ./IP/Printer_list')
-  sleep(0.5)
-  print('Successfully processed raw data')
-  os.system('rm -rf ./IP/scan.pcap && rm -rf ./IP/pcap.txt && rm -rf ./IP/raw_list 2>/dev/null')
-  sleep(sleep_time)
-  print('Cleaned raw data')
-  sleep(sleep_time)
-  print('\nLocated '+ str(sum(1 for line in open ('./IP/Printer_list'))) +' printers, storing as ./IP/Printer_list\n')
 
 def PRETty_Interactive():
   gen_new= str(input("Generate new IP list? [y/N] "))
@@ -123,7 +71,6 @@ def PRETty_Interactive():
     i+=1
 
 def PRETty_cli():
-  # avoid breaking current functionality
   if args.arp_scan:
     os.system('sudo arp-scan -g '+args.ip_range+' -W ./IP/scan.pcap')
     PrinterLogSort()
@@ -164,3 +111,24 @@ else:
   sleep_time=1.5
   PRETty_Interactive()
 
+def main(printers, command, match_condition, shell):
+  if printers == sys.stdin:
+    pass
+  else:
+    pass
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument('printers', nargs='?', type=argparse.FileType('r'),
+                      default=sys.stdin, help="A file with a list of printers.\
+                      If omitted, the list is read from stdin.")
+  parser.add_argument('-c', '--command', type=str,
+                      default='pret_pagecount.txt',
+                      help='Name of a command-list file to use.')
+  parser.add_argument('-m', '--match-condition', type=toRE, default=r'pagecount=\d+',
+                      help='A regex indicating an expected probe output.')
+  parser.add_argument('-s', '--shell', type=str, default='pjl',
+                      help='Printer shell type.', choices=['pjl', 'ps', 'pcl'])
+
+  args = parser.parse_args()
+  main(**vars(args))
