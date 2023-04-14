@@ -3,9 +3,7 @@ Please refer to the parent reposity and [PRET](https://github.com/RUB-NDS/PRET) 
 
 This fork is a rewrite of the parent with a focus on a subjectively more convenient CLI interface, no automatic scanning, and no interfactive prompts. The reasoning behind the effort is to integrate enumeration of potentially vulnerable printers into larger automated processes. Hence the assumtion that target IP addresses/ranges are known in advance and no user input is required throughout the tool's execution.
 
-## GUIDE:
-
-### Installation
+## Installation
 
 1. install the prerequisites
   - get `imagemagick` and `ghostscript` from package manager of choice
@@ -16,7 +14,7 @@ This fork is a rewrite of the parent with a focus on a subjectively more conveni
 ## PRET command lists
 
 PRETty comes with pre-made command list files for PRET located in `PRETty/commands/`; however, others can be added and specified in the call to `PRETty.py`.
-	
+
 ## Usage
 ```
 usage: PRETty.py [-h] [-c COMMAND] [-m MATCH_CONDITION] [-s {pjl,ps,pcl}] [-d] [printers]
