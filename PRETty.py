@@ -1,121 +1,54 @@
 #!/usr/bin/env python
 
-import os, sys, argparse, re
-from subprocess import run, PIPE, STDOUT
+import sys, argparse, re, asyncio
+
+CHUNK_SIZE = 1
 
 def toRE(arg_value):
   return re.compile(arg_value, re.I)
 
+async def probe_printer(printer_ip, args):
+  cmd = f'python ./PRET/pret.py {args.debug} -q -i ./commands/{args.command} '\
+    f'{printer_ip} {args.shell}'
 
-def PRETty_Interactive():
-  gen_new= str(input("Generate new IP list? [y/N] "))
-  if gen_new == 'y':
+  print('Command', cmd)
 
-    set_ip_range = input("Set IP range for scanning? [y/N] ")
-    if set_ip_range == 'y':
-      ip_range = str(input("IP range: [ex. 192.168.0.0/16] "))
+  try:
+    process = await asyncio.create_subprocess_shell(
+      cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+
+    out, err = await process.communicate()
+
+    print(f'[{cmd!r} exited with {process.returncode}]')
+
+    return out.decode()
+
+  except asyncio.CancelledError:
+    raise RuntimeError(f'PRET cancelled on {printer_ip}.') from None
+
+  except Exception as e:
+    raise RuntimeError(f'PRET failed on {printer_ip}: {str(e)}') from e
+
+async def process_chunk(chunk, args):
+  tasks = [asyncio.create_task(probe_printer(printer_ip, args)) for printer_ip in chunk]
+
+  results = await asyncio.gather(*tasks, return_exception=True)
+
+  for i, result in enumerate(results):
+    if isinstance(result, Exception):
+      print(f'Error on {chunk[i]}: {str(result)}')
     else:
-      ip_range = '--localnet'
+      print(result)
 
-    print("ARP scanning LAN for devices...")
-    sleep(1.5)
-    os.system('sudo arp-scan -g '+ip_range+' -W ./IP/scan.pcap')
-    print('Successfully collected IP\'s')
+async def main(args):
+  printer_list = args.printers.read().split('\n')[:-1]
 
-    PrinterLogSort()
-
-  list_answer = str(input("Use default IP list? [Y/n] "))
-  if list_answer == 'n':
-    print('An example IP list can be found at ./IP/example')
-    print('Available IP lists: ')
-    os.system('ls ./IP/')
-    print('\n')
-    list = './IP/' + str(input("Which list? ./IP/"))
-    print('\nLoaded '+ str(sum(1 for line in open (list))) +' IP\'s\n')
-  else:
-    print('Using "./IP/Printer_list" as IP range')
-    list = './IP/Printer_list'
-    print('\nLoaded '+ str(sum(1 for line in open ('./IP/Printer_list'))) +' IP\'s\n')
-
-  commands_list = str(input("Use default ./commands/pret_pagecount.txt command file? [Y/n] "))
-  if commands_list == 'n':
-    print('Example command lists: (./commands)')
-    os.system('ls ./commands/')
-    print('\n')
-    commands_list = './commands/' + str(input("Which command list? "+'./commands/'))
-    print('Commands: ')
-    os.system('cat '+commands_list)
-    print('\n')
-  else:
-    print('Using "./commands/pret_pagecount.txt" as PRET commands')
-    commands_list = './commands/pret_pagecount.txt'
-    print('Commands: ')
-    os.system('cat ./commands/pret_pagecount.txt')
-    print('\n')
-
-  shell_type = input("Shell Type: [ps, pjl, pcl] ")
-
-  debug = input('Enable PRET debug mode? [y/N] ')
-  if debug == 'y':
-    debug_enabled = '-d'
-  else:
-    debug_enabled = ''
-  print('')
-
-  with open(list) as inf:
-    lines = [line.strip() for line in inf]
-
-  i=0
-  while i < len(lines):
-    os.system('../pret.py '+debug_enabled+' -i '+commands_list+' -q '+lines[i]+' '+ shell_type)
-    i+=1
-
-def PRETty_cli():
-  if args.arp_scan:
-    os.system('sudo arp-scan -g '+args.ip_range+' -W ./IP/scan.pcap')
-    PrinterLogSort()
-    sleep(1)
-    list = './IP/Printer_list'
-    with open(list) as inf:
-      lines = [line.strip() for line in inf]
-    i=0
-    while i < len(lines):
-      os.system('../pret.py -i ./commands/'+args.commands_list+' -q '+lines[i]+' '+ args.shell_type)
-      i+=1
-  else:
-    with open(args.printer_list) as inf, open(args.output_file, 'w') as outf:
-      for printer_ip in inf:
-        probe_output = ProbePrinter(printer_ip.rstrip(), f'./commands/{args.commands_list}', args.shell_type)
-        print(probe_output)
-        if ProbePassed(probe_output, args.match_condition):
-          outf.write(printer_ip)
-
-def ProbePrinter(ip, commands_file, shell_type):
-  cmd = ['pret.py', '-i', commands_file, '-q', ip, shell_type]
-  pret_done = run(cmd, stdout=PIPE, stderr=STDOUT)
-  return pret_done.stdout.decode()
-
-def ProbePassed(output, re_condition):
-  if 'established' not in output:
-    return False
-  return bool(re_condition.search(output))
-
-if args.cli:
-  main_art()
-  sleep_time=0.5
-  PRETty_cli()
-else:
-  alt_text = ' automation tool'
-  main_art()
-  interactive_steps()
-  sleep_time=1.5
-  PRETty_Interactive()
-
-def main(printers, command, match_condition, shell):
-  if printers == sys.stdin:
-    pass
-  else:
-    pass
+  chunks = [printer_list[i:i+CHUNK_SIZE] for i in range(0, len(printer_list),
+    CHUNK_SIZE)]
+  
+  tasks = [asyncio.create_task(process_chunk(chunk, args)) for chunk in chunks]
+  
+  await asyncio.gather(*tasks)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -125,10 +58,23 @@ if __name__ == '__main__':
   parser.add_argument('-c', '--command', type=str,
                       default='pret_pagecount.txt',
                       help='Name of a command-list file to use.')
-  parser.add_argument('-m', '--match-condition', type=toRE, default=r'pagecount=\d+',
+  parser.add_argument('-m', '--match-condition', type=toRE,
+                      default=r'pagecount=\d+',
                       help='A regex indicating an expected probe output.')
   parser.add_argument('-s', '--shell', type=str, default='pjl',
                       help='Printer shell type.', choices=['pjl', 'ps', 'pcl'])
+  parser.add_argument('-d', '--debug', action='store_const', const='-d',
+                      default='')
 
   args = parser.parse_args()
-  main(**vars(args))
+
+  try:
+    asyncio.run(main(args))
+
+  except KeyboardInterrupt:
+    for task in asyncio.all_tasks():
+      task.cancel()
+
+  finally:
+    asyncio.run(asyncio.sleep(0.250))
+    print('Interrupted. Exiting.')
