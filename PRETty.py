@@ -59,7 +59,8 @@ if __name__ == '__main__':
                       default=r'pagecount=\d+',
                       help='A regex indicating an expected probe output.')
   parser.add_argument('-s', '--shell', type=str, default='pjl',
-                      help='Printer shell type.', choices=['pjl', 'ps', 'pcl'])
+                      help='Printer shell type. Defaults to pjl',
+                      choices=['pjl', 'ps', 'pcl'])
   parser.add_argument('-d', '--debug', action='store_const', const='-d',
                       default='')
 
