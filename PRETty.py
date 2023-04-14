@@ -1,53 +1,50 @@
 #!/usr/bin/env python
 
-import sys, argparse, re, asyncio
-
-CHUNK_SIZE = 1
+import asyncio, re, argparse, sys
 
 def toRE(arg_value):
   return re.compile(arg_value, re.I)
 
-async def probe_printer(printer_ip, args):
-  cmd = f'python ./PRET/pret.py {args.debug} -q -i ./commands/{args.command} '\
-    f'{printer_ip} {args.shell}'
-
-  print('Command', cmd)
-
+async def probe_printer(ip, args):
+  command = f'python ./PRET/pret.py {args.debug} -q -i '\
+    f'./commands/{args.command} {ip} {args.shell}'
+  
   try:
-    process = await asyncio.create_subprocess_shell(
-      cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+    process = await asyncio.create_subprocess_shell(command,
+      stdout=asyncio.subprocess.PIPE)
 
-    out, err = await process.communicate()
+    output, error = await process.communicate()
 
-    print(f'[{cmd!r} exited with {process.returncode}]')
-
-    return out.decode()
+    if not args.match_condition.search(output.decode()):
+      return None
+    return ip
 
   except asyncio.CancelledError:
-    raise RuntimeError(f'PRET cancelled on {printer_ip}.') from None
+    raise RuntimeError(f'PRET cancelled on {ip}.') from None
 
   except Exception as e:
-    raise RuntimeError(f'PRET failed on {printer_ip}: {str(e)}') from e
+    raise RuntimeError(f'PRET failed on {ip}: {str(e)}') from e
 
 async def process_chunk(chunk, args):
-  tasks = [asyncio.create_task(probe_printer(printer_ip, args)) for printer_ip in chunk]
+  tasks = [asyncio.create_task(probe_printer(ip, args)) for ip in chunk]
 
-  results = await asyncio.gather(*tasks, return_exception=True)
+  results = await asyncio.gather(*tasks, return_exceptions=True)
 
   for i, result in enumerate(results):
     if isinstance(result, Exception):
-      print(f'Error on {chunk[i]}: {str(result)}')
+      print(f'Error processing {chunk[i]}: {str(result)}')
     else:
-      print(result)
+      if result: print(result)
 
 async def main(args):
-  printer_list = args.printers.read().split('\n')[:-1]
+  chunk_size = 5
 
-  chunks = [printer_list[i:i+CHUNK_SIZE] for i in range(0, len(printer_list),
-    CHUNK_SIZE)]
-  
+  ips = args.printers.read().split('\n')[:-1]
+
+  chunks = [ips[i:i+chunk_size] for i in range(0, len(ips), chunk_size)]
+
   tasks = [asyncio.create_task(process_chunk(chunk, args)) for chunk in chunks]
-  
+
   await asyncio.gather(*tasks)
 
 if __name__ == '__main__':
@@ -77,4 +74,3 @@ if __name__ == '__main__':
 
   finally:
     asyncio.run(asyncio.sleep(0.250))
-    print('Interrupted. Exiting.')
