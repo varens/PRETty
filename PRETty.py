@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
-import asyncio, re, argparse, sys
+import asyncio, re, argparse, sys, os
 
 def toRE(arg_value):
   return re.compile(arg_value, re.I)
 
 async def probe_printer(ip, args):
+  os.chdir(os.path.dirname(__file__))
   command = f'python ./PRET/pret.py {args.debug} -q -i '\
     f'./commands/{args.command} {ip} {args.shell}'
   
@@ -54,7 +55,7 @@ if __name__ == '__main__':
                       If omitted, the list is read from stdin.")
   parser.add_argument('-c', '--command', type=str,
                       default='pret_pagecount.txt',
-                      help='Name of a command-list file to use.')
+                      help='File in ./commands with a list of pret commands to run on the printer.')
   parser.add_argument('-m', '--match-condition', type=toRE,
                       default=r'pagecount=\d+',
                       help='A regex indicating an expected probe output.')
