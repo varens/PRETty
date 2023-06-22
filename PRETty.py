@@ -16,6 +16,8 @@ async def probe_printer(ip, args):
 
     output, error = await process.communicate()
 
+    if args.print_output:
+      return f'{ip}: {output.decode()}\n'
     if not args.match_condition.search(output.decode()):
       return None
     return ip
@@ -57,13 +59,15 @@ if __name__ == '__main__':
                       default='pret_pagecount.txt',
                       help='File in ./commands with a list of pret commands to run on the printer.')
   parser.add_argument('-m', '--match-condition', type=toRE,
-                      default=r'pagecount=\d+',
+                      default=r'\d+',
                       help='A regex indicating an expected probe output.')
   parser.add_argument('-s', '--shell', type=str, default='pjl',
                       help='Printer shell type. Defaults to pjl',
                       choices=['pjl', 'ps', 'pcl'])
   parser.add_argument('-d', '--debug', action='store_const', const='-d',
                       default='')
+  parser.add_argument('--print-output', action='store_true', default=False,
+                      help='Performs no matching but prints command output from every printer.')
 
   args = parser.parse_args()
 
